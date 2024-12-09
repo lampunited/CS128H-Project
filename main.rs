@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use num_complex::Complex64;
+use std::collections::HashMap;
 
 struct Circuit {
     num_qubits: usize,
-    gates: Vec<(Gate, Vec<usize>)>, 
+    gates: Vec<(Gate, Vec<usize>)>,
 }
 
 impl Circuit {
@@ -20,7 +20,7 @@ impl Circuit {
 
     fn run(&self) -> Vec<Complex64> {
         let mut state = vec![Complex64::new(0.0, 0.0); 1 << self.num_qubits];
-        state[0] = Complex64::new(1.0, 0.0); 
+        state[0] = Complex64::new(1.0, 0.0);
         for (gate, targets) in &self.gates {
             state = gate.apply(&state, targets.clone(), self.num_qubits);
         }
@@ -105,19 +105,59 @@ fn identity() -> [[Complex64; 2]; 2] {
 
 fn cnot() -> [[Complex64; 4]; 4] {
     [
-        [Complex64::new(1.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0)],
-        [Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0)],
-        [Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0)],
-        [Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0), Complex64::new(0.0, 0.0)],
+        [
+            Complex64::new(1.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+        ],
+        [
+            Complex64::new(0.0, 0.0),
+            Complex64::new(1.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+        ],
+        [
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(1.0, 0.0),
+        ],
+        [
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(1.0, 0.0),
+            Complex64::new(0.0, 0.0),
+        ],
     ]
 }
 
 fn swap() -> [[Complex64; 4]; 4] {
     [
-        [Complex64::new(1.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0)],
-        [Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0), Complex64::new(0.0, 0.0)],
-        [Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0)],
-        [Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0)],
+        [
+            Complex64::new(1.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+        ],
+        [
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(1.0, 0.0),
+            Complex64::new(0.0, 0.0),
+        ],
+        [
+            Complex64::new(0.0, 0.0),
+            Complex64::new(1.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+        ],
+        [
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(1.0, 0.0),
+        ],
     ]
 }
 
@@ -147,21 +187,21 @@ fn apply_two_qubit_gate(
     targets: Vec<usize>,
     num_qubits: usize,
 ) -> Vec<Complex64> {
-    let dim = 1 << num_qubits; 
+    let dim = 1 << num_qubits;
     let mut new_state = vec![Complex64::new(0.0, 0.0); dim];
 
     let control = targets[0];
     let target = targets[1];
 
     for i in 0..dim {
-        let control_bit = (i >> control) & 1; 
-        let target_bit = (i >> target) & 1; 
+        let control_bit = (i >> control) & 1;
+        let target_bit = (i >> target) & 1;
 
-        let index = (control_bit << 1) | target_bit; 
+        let index = (control_bit << 1) | target_bit;
         for j in 0..4 {
-            let source = (i & !(1 << control) & !(1 << target)) 
-                | ((j >> 1) << control)                         
-                | ((j & 1) << target);                          
+            let source = (i & !(1 << control) & !(1 << target))
+                | ((j >> 1) << control)
+                | ((j & 1) << target);
             new_state[i] += gate[index][j] * state[source];
         }
     }
@@ -173,7 +213,7 @@ fn main() {
     let num_qubits = 2;
     let mut circuit = Circuit::new(num_qubits);
 
-    let instructions = vec!["h q[0]", "x q[1]"]; 
+    let instructions = vec!["h q[0]", "x q[1]"];
     let gate_map: HashMap<&str, Gate> = [
         ("h", Gate::H),
         ("t", Gate::T),
@@ -224,9 +264,13 @@ fn main() {
     let probabilities = circuit.compute_probabilities(&final_state);
     println!("Probabilities of each state:");
     for (state, prob) in probabilities.iter().enumerate() {
-        if *prob > 0.0 { 
-            println!("State |{:0width$b}>: {:.5}", state, prob, width = num_qubits);
+        if *prob > 0.0 {
+            println!(
+                "State |{:0width$b}>: {:.5}",
+                state,
+                prob,
+                width = num_qubits
+            );
         }
     }
 }
-
