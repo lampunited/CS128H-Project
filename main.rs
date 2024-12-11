@@ -1,5 +1,6 @@
 use num_complex::Complex64;
 use std::collections::HashMap;
+use std::io::{self, Write};
 
 struct Circuit {
     num_qubits: usize,
@@ -15,6 +16,7 @@ impl Circuit {
     }
 
     fn add_gate(&mut self, gate: Gate, targets: Vec<usize>) {
+        println!("Adding gate {:?} on qubits {:?}", gate, targets);
         self.gates.push((gate, targets));
     }
 
@@ -22,9 +24,9 @@ impl Circuit {
         let mut state = vec![Complex64::new(0.0, 0.0); 1 << self.num_qubits];
         state[0] = Complex64::new(1.0, 0.0);
         for (gate, targets) in &self.gates {
+            println!("Applying {:?} on {:?}", gate, targets);
             state = gate.apply(&state, targets.clone(), self.num_qubits);
         }
-
         state
     }
 
@@ -33,7 +35,7 @@ impl Circuit {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Gate {
     H,
     T,
@@ -196,8 +198,8 @@ fn apply_two_qubit_gate(
     for i in 0..dim {
         let control_bit = (i >> control) & 1;
         let target_bit = (i >> target) & 1;
-
         let index = (control_bit << 1) | target_bit;
+
         for j in 0..4 {
             let source = (i & !(1 << control) & !(1 << target))
                 | ((j >> 1) << control)
@@ -210,10 +212,17 @@ fn apply_two_qubit_gate(
 }
 
 fn main() {
-    let num_qubits = 2;
+    let mut input = String::new();
+    print!("Enter number of qubits: ");
+    io::stdout().flush().unwrap();
+    input.clear();
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read line");
+    let num_qubits: usize = input.trim().parse().expect("Invalid number");
+
     let mut circuit = Circuit::new(num_qubits);
 
-    let instructions = vec!["h q[0]", "x q[1]"];
     let gate_map: HashMap<&str, Gate> = [
         ("h", Gate::H),
         ("t", Gate::T),
@@ -228,7 +237,23 @@ fn main() {
     .map(|&(k, ref v)| (k, v.clone()))
     .collect();
 
-    for instruction in instructions {
+    print!("Enter number of instructions: ");
+    io::stdout().flush().unwrap();
+    input.clear();
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read line");
+    let num_instructions: usize = input.trim().parse().expect("Invalid number");
+
+    for _ in 0..num_instructions {
+        input.clear();
+        print!("Enter instruction (e.g. 'h q[0]' or 'x q[1]'): ");
+        io::stdout().flush().unwrap();
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
+        let instruction = input.trim();
+
         let parts: Vec<&str> = instruction.split_whitespace().collect();
         if parts.len() < 2 {
             println!("Invalid instruction: {}", instruction);
@@ -259,18 +284,17 @@ fn main() {
         circuit.add_gate(gate, targets);
     }
 
+    println!("Starting circuit execution...");
     let final_state = circuit.run();
 
     let probabilities = circuit.compute_probabilities(&final_state);
-    println!("Probabilities of each state:");
+    println!("Final probabilities:");
     for (state, prob) in probabilities.iter().enumerate() {
-        if *prob > 0.0 {
-            println!(
-                "State |{:0width$b}>: {:.5}",
-                state,
-                prob,
-                width = num_qubits
-            );
-        }
+        println!(
+            "State |{:0width$b}>: {:.5}",
+            state,
+            prob,
+            width = num_qubits
+        );
     }
 }
